@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using ExcelDataReader;
 
 namespace TextHandler
@@ -15,8 +16,9 @@ namespace TextHandler
         [STAThread]
         static void Main(string[] args)
         {
-            var run = new Run();
-            Console.ReadLine();
+            Application.Run(new Form1());
+        //    var run = new Run();
+
         }
 
     class Run
@@ -43,8 +45,9 @@ namespace TextHandler
                 var TempText = new List<string>();
                 bool StartRec = false;
                 string Name = "";
-                string Text = "";
                 var Command = new HashSet<string>();
+                var Add = new List<string>();
+              
                 foreach (var Oridat in OriText)
                 {
                     if (Oridat.StartsWith("&"))
@@ -54,34 +57,98 @@ namespace TextHandler
 
                     if (StartRec)
                     {
+                        if (Oridat == "“哈哈，那么本人就恭敬不如从命了，")
+                        {
+                          //  Console.WriteLine();
+                        }
+
                         if (Oridat[Oridat.Length - 1] != '”')
                         {
-                            Text += Oridat + "\n";
+                            Add.Add(Oridat);
+                            TempText.Add(Oridat);
                             continue;
                         }
-
-                        Text += Oridat;
-                        var Ein = Text.Replace("“", "").Replace("”", "");
-                        Text = "";
-                        string Zwei = null;
-                        if (Ein.IndexOf(@"{{不停}}", StringComparison.Ordinal) != -1)
+                        Add.Add(Oridat);
+                        bool FindCheck = false;
+                        var ContinueCheck = Add.FirstOrDefault(X => X.IndexOf("{{不停}}", StringComparison.Ordinal) != -1);
+                        if (ContinueCheck == null)
                         {
-                            Ein = Ein.Replace(@"{{不停}}", "");
-                            Zwei = Exl[Name].FirstOrDefault(x => x.Value.StartsWith(Ein)).Key;
-                            CheckTextExists();
-                        }
-                        else if (Ein.IndexOf(@"{{跳过}}", StringComparison.Ordinal) == -1)
-                        {
-                            Zwei = Exl[Name].FirstOrDefault(x =>
+                            var BreakCheck = Add.FirstOrDefault(X => X.IndexOf("{{跳过}}", StringComparison.Ordinal) != -1);
+                            if (BreakCheck == null)
                             {
-                                String.Compute(Ein, x.Value);
-                                return (float) String.ComputeResult.Rate > 0.8;
-                            }).Key;
-                            CheckTextExists();
-                            //   Zwei = Exl[Name].FirstOrDefault(x => x.Value == Ein).Key;
+                               
+                                foreach (var VARIABLE in Add)
+                                {
+                                    var Ret = Search(VARIABLE);
+                                    if (Ret != null)
+                                    {
+                                        CheckTextExists(Ret);
+                                        FindCheck = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                FindCheck = true;
+                            }
+                        }
+                        else
+                        {
+                            foreach (var VARIABLE in Add)
+                            {
+                                var Ret = Search(VARIABLE.Replace(@"{{不停}}", ""));
+                                if (Ret != null)
+                                {
+                                    CheckTextExists(Ret);
+                                    FindCheck = true;
+                                    break;
+                                }
+                            }
                         }
 
-                        void CheckTextExists()
+                        if (!FindCheck)
+                        {
+                            Console.WriteLine($"未找到文本，行数:{OriText.IndexOf(Oridat)}");
+                        }
+
+                        string Search(string T)
+                        {
+                            T = T.Replace("“", "").Replace("”", "");
+                            return Exl[Name].FirstOrDefault(x =>
+                            {
+                                String.Compute(T, x.Value);
+                                return (float) String.ComputeResult.Rate > 0.8;
+                            }).Key ?? Exl[Name]
+                                .FirstOrDefault(x => x.Value.IndexOf(T, StringComparison.Ordinal) != -1).Key;
+                        }
+                        /* string Zwei;
+                         if (Ein.IndexOf(@"{{不停}}", StringComparison.Ordinal) != -1)
+                         {
+ 
+                             Ein = Ein.Replace(@"{{不停}}", "");
+ 
+                             Zwei = Exl[Name].FirstOrDefault(x => x.Value.IndexOf(Ein, StringComparison.Ordinal) != -1)
+                                 .Key;
+                             CheckTextExists();
+                         }
+                         else if (Ein.IndexOf(@"{{跳过}}", StringComparison.Ordinal) == -1)
+                         {
+                             Zwei = Exl[Name].FirstOrDefault(x =>
+                             {
+                                 String.Compute(Ein, x.Value);
+                                 return (float) String.ComputeResult.Rate > 0.8;
+                             }).Key;
+                             if (Zwei == null)
+                             {
+                                 Zwei = Exl[Name]
+                                     .FirstOrDefault(x => x.Value.IndexOf(Ein, StringComparison.Ordinal) != -1).Key;
+                             }
+ 
+                             CheckTextExists();
+                         }*/
+
+                        void CheckTextExists(string Zwei)
                         {
                             if (!string.IsNullOrWhiteSpace(Zwei))
                             {
@@ -90,13 +157,14 @@ namespace TextHandler
                                 {
                                     SaveText.Add(AddS);
                                 }
-
+                                Exl[Name].Remove(Zwei);
                             }
                             else
                             {
-                                Trace.WriteLine($"未找到文本，行数:{SaveText.Count}");
+                                Console.WriteLine($"未找到文本，行数:{SaveText.Count}");
                             }
                         }
+
                         StartRec = false;
                     }
 
@@ -107,8 +175,10 @@ namespace TextHandler
                         {
                             if (Exl.ContainsKey(Name))
                             {
+                                //SaveText.AddRange(Add.ToArray());
+                                Add.Clear();
                                 SaveText.AddRange(TempText.ToArray());
-                                TempText = new List<string>();
+                                TempText.Clear();
                                 StartRec = true;
                             }
                         }
@@ -128,11 +198,11 @@ namespace TextHandler
                 {
                     Fol.Create();
                 }
-
-                for (int i = 0; i < Date.Length; i++)
+            
+              /*  for (int i = 0; i < Date.Length; i++)
                 {
                     Date[i] =i+":"+ Date[i];
-                }
+                }*/
                 File.WriteAllLines($"{Fol.FullName}\\{path}", Date);
             }
             Dictionary<string, Dictionary<string, string>> 读取并分析分类表(string Path = "13.xlsx")
@@ -153,6 +223,8 @@ namespace TextHandler
                         分类列表.Add(Table.TableName, Dat);
                     }
                 }
+
+                分类列表.Remove("古梦诗");
                 return 分类列表;
             }
         }
