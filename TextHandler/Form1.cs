@@ -155,12 +155,27 @@ namespace TextHandler
         {
             if (Voice.Count != 0 && Scr.Count != 0)
             {
+                foreach (var VARIABLE in File.ReadAllLines("名字表.txt"))
+                {
+                    var TN = VARIABLE.Split('|');
+                    Name_List.Add(TN[0], TN[1]);
+                }
+
+                foreach (var VARIABLE in NameList)
+                {
+                    if (!Name_List.ContainsKey(VARIABLE))
+                    {
+                        Name_List.Add(VARIABLE, VARIABLE);
+                    }
+                }
+
                 var VoiceCopy = new Dictionary<int, Dictionary<string, Dictionary<string, string>>>(Voice);
                 var _NameList = NameList.ToList();
                 foreach (var VARIABLE in VoiceList.CheckedItems)
                 {
                     _NameList.Remove(VARIABLE.ToString());
                 }
+
                 foreach (var VARIABLE in _NameList)
                 {
                     foreach (Dictionary<string, Dictionary<string, string>> VARIABLE2 in VoiceCopy.Values)
@@ -168,21 +183,16 @@ namespace TextHandler
                         VARIABLE2.Remove(VARIABLE);
                     }
                 }
+
                 foreach (var VARIABLE in Scr)
                 {
                     TextHandler(VARIABLE, VoiceCopy[VARIABLE.Cap]);
                 }
-                var Fol = new DirectoryInfo("Save");
-                var LOG = new DirectoryInfo("log");
-                if (!Directory.Exists("Save"))
-                {
-                    LOG.Create();
-                }
-                if (!Directory.Exists("log"))
-                {
-                    LOG.Create();
-                }
 
+                var Fol = new DirectoryInfo("处理后文本");
+                var LOG = new DirectoryInfo("异常记录");
+                Fol.Create();
+                LOG.Create();
                 foreach (var VARIABLE in Scr)
                 {
                     File.WriteAllLines($"{Fol.FullName}\\{VARIABLE.Name}", VARIABLE.Save.ToArray());
@@ -197,6 +207,7 @@ namespace TextHandler
             }
         }
 
+        Dictionary<string, string> Name_List = new Dictionary<string, string>();
         private void TextHandler(TxtFile OriText, Dictionary<string, Dictionary<string, string>> Exl)
         {
             var TempText = new List<string>();
@@ -260,7 +271,7 @@ namespace TextHandler
                         }
                         if (!Find)
                         {
-                            OriText.Log.Add($"未找到文本，行数:{OriText.Save.Count}");
+                            OriText.Log.Add($"原始文本未找到语音，行数:{OriText.Save.Count}");
                         }
                     }
 
@@ -280,7 +291,7 @@ namespace TextHandler
                     {
                         if (!string.IsNullOrWhiteSpace(Zwei))
                         {
-                            var AddS = $"&{Name}={OriText.Cap}_{Zwei}.ogg";
+                            var AddS = $"&{Name_List[Name]}={OriText.Cap}_{Zwei}.ogg";
                             if (!Command.Contains(AddS))
                             {
                                 OriText.Save.Add(AddS);
